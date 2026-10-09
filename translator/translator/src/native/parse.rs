@@ -929,7 +929,21 @@ fn parse_phi_incoming_value(token: &str) -> Result<LlValue, String> {
     parse_value(token)
 }
 
+/// Deeply nested aggregate types (arrays, vectors, structs, pointer chains) recurse one level per nesting level.
+/// Malicious AIR can nest thousands deep and overflow the stack — fatal and uncatchable — so refuse past this bound.
+/// Legitimate shader types nest only a handful of levels; this mirrors the depth guard in buffer_addresses.rs.
+const MAX_TYPE_DEPTH: usize = 128;
+
 pub(super) fn parse_type(s: &str) -> Result<LlType, String> {
+    parse_type_depth(s, 0)
+}
+
+fn parse_type_depth(s: &str, depth: usize) -> Result<LlType, String> {
+    if depth > MAX_TYPE_DEPTH {
+        return Err(format!(
+            "native emitter: type nests deeper than {MAX_TYPE_DEPTH} levels — refused"
+        ));
+    }
     let s = strip_leading_fast_math_flags(s.trim());
     if s == "void" {
         return Ok(LlType::Void);
@@ -984,23 +998,23 @@ pub(super) fn parse_type(s: &str) -> Result<LlType, String> {
     if s.starts_with('<') && s.ends_with('>') {
         let inner = s[1..s.len() - 1].trim();
         if inner.starts_with('{') && inner.ends_with('}') {
-            return parse_struct_fields(&inner[1..inner.len() - 1]).map(LlType::Struct);
+            return parse_struct_fields_depth(&inner[1..inner.len() - 1], depth + 1).map(LlType::Struct);
         }
         let (lanes, elem) = split_vector_type(inner)?;
-        return Ok(LlType::Vector(Box::new(parse_type(elem)?), lanes));
+        return Ok(LlType::Vector(Box::new(parse_type_depth(elem, depth + 1)?), lanes));
     }
     if s.starts_with('{') && s.ends_with('}') {
-        return parse_struct_fields(&s[1..s.len() - 1]).map(LlType::Struct);
+        return parse_struct_fields_depth(&s[1..s.len() - 1], depth + 1).map(LlType::Struct);
     }
     if s.starts_with('[') && s.ends_with(']') {
         let inner = s[1..s.len() - 1].trim();
         let (len, elem) = split_vector_type(inner)?;
-        return Ok(LlType::Array(Box::new(parse_type(elem)?), len));
+        return Ok(LlType::Array(Box::new(parse_type_depth(elem, depth + 1)?), len));
     }
     if let Some(pointee) = s.strip_suffix('*') {
         let (pointee, space) = split_trailing_addrspace(pointee.trim_end())?;
         if !pointee.ends_with(')') {
-            parse_type(pointee)?;
+            parse_type_depth(pointee, depth + 1)?;
         }
         return Ok(LlType::Ptr(space));
     }
@@ -1043,9 +1057,13 @@ fn strip_leading_fast_math_flags(mut s: &str) -> &str {
 }
 
 pub(super) fn parse_struct_fields(s: &str) -> Result<Vec<LlType>, String> {
+    parse_struct_fields_depth(s, 0)
+}
+
+fn parse_struct_fields_depth(s: &str, depth: usize) -> Result<Vec<LlType>, String> {
     split_top_level(s, ',')
         .into_iter()
-        .map(parse_type)
+        .map(|field| parse_type_depth(field, depth))
         .collect::<Result<Vec<_>, _>>()
 }
 
@@ -1179,6 +1197,18 @@ mod parse_tests {
         assert_eq!(parse_type("i32 addrspace(1)**").unwrap(), LlType::Ptr(0));
         assert!(parse_type("notatype*").is_err());
         assert!(parse_type("i32 addrspace(x)*").is_err());
+    }
+
+    #[test]
+    fn deeply_nested_type_is_refused_instead_of_overflowing_the_stack() {
+        // A malicious shader can nest an aggregate thousands deep; without a bound parse_type recurses once per
+        // level and overflows the stack, aborting the host Metal process. Past MAX_TYPE_DEPTH it must return Err.
+        let deep_array = format!("{}i8{}", "[1 x ".repeat(5000), "]".repeat(5000));
+        assert!(parse_type(&deep_array).is_err(), "deep array type must be refused");
+        let deep_ptr = format!("i8{}", "*".repeat(5000));
+        assert!(parse_type(&deep_ptr).is_err(), "deep pointer chain must be refused");
+        // A handful of nesting levels is normal and must still parse.
+        assert!(parse_type("[4 x [4 x <4 x float>]]").is_ok(), "shallow nesting must still parse");
     }
 
     #[test]

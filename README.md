@@ -160,6 +160,12 @@ through NVK, outside Metal, which is where llama.cpp, whisper.cpp, VkFFT and you
 [`docs/CUDA-ALTERNATIVES.md`](docs/CUDA-ALTERNATIVES.md) is the guide, `tools/nvk-compute-check` proves the card does
 compute that way, and `. tools/nvk-env.sh` points any Vulkan program at it.
 
+## Security
+
+A security review of the whole tree (scanners plus a line-by-line pass over the installer scripts, the 1401 app,
+the kernel extensions, and the plugin and translator) is in [`docs/SECURITY-REVIEW.md`](docs/SECURITY-REVIEW.md):
+what was found, what is fixed here, and what is recorded for the maintainer with an exact patch.
+
 ## License
 
 Free of charge, source code included. Nobody may sell it or use it to make money.
