@@ -61,6 +61,13 @@ jobs:
         run: build/build_plugin.sh
       - name: Build the shipping variant (RELEASE=1)
         run: RELEASE=1 build/build_plugin.sh
+      - name: Build nvk-compute-check (build/build_compute_check.sh)
+        run: build/build_compute_check.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nvk-compute-check
+          path: out/compute-check/nvk-compute-check
+          if-no-files-found: error
       - name: Compiler warnings
         if: ${{ !cancelled() }}   # still runs after a failure, but not on a cancelled run (that would hold the concurrency group)
         run: |
@@ -120,6 +127,24 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fetch Mesa at nvk/MESA_BASE and apply the patch (nvk/prepare-mesa.sh)
         run: nvk/prepare-mesa.sh "$RUNNER_TEMP/mesa"
+
+  compute-check:
+    name: nvk-compute-check on Mesa's software Vulkan (lavapipe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vulkan headers, loader, lavapipe, glslang, SPIRV-Tools
+        run: sudo apt-get update -q && sudo apt-get install -y -q libvulkan-dev mesa-vulkan-drivers glslang-tools spirv-tools
+      - name: The committed kernel still compiles and validates
+        run: tools/nvk-compute-check/regen-spirv.sh --check
+      - name: Build (gcc, -Werror)
+        run: gcc -std=c11 -O2 -Wall -Wextra -Werror -D_DEFAULT_SOURCE -o nvk-compute-check tools/nvk-compute-check/main.c -ldl
+      - name: Run on lavapipe and require PASS
+        run: |
+          export VK_ICD_FILENAMES=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -1)
+          ./nvk-compute-check --any-device | tee run.log
+          grep -q '^PASS:' run.log
 
   scripts:
     name: script syntax

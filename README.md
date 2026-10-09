@@ -151,12 +151,14 @@ is not in this repository, and `kexts/NVRM/rmcc.py` and `build-completion-archiv
 take their compile flags from the same build. `NVIDIAShared.bundle`, the Vulkan loader (`libvulkan.dylib`,
 `nvk_icd.json`), `air-opt`, the bundle `Info.plist` and the GSP firmware come from a release package.
 
-## CUDA and OptiX
+## CUDA, OptiX, and what runs instead
 
-Not available, and not buildable from this tree: both are closed NVIDIA software shipped for Linux and Windows only
-(CUDA on macOS ended with 10.2 in 2019, OptiX with 5.1 in 2018, neither ever for Turing or later). What the driver
-offers instead, and the parts of this tree that already run NVIDIA's compiler output, are in
-[`docs/CUDA-AND-OPTIX.md`](docs/CUDA-AND-OPTIX.md).
+CUDA and OptiX are not available and cannot be built from this tree: both are closed NVIDIA software shipped for
+Linux and Windows only (CUDA on macOS ended with 10.2 in 2019, OptiX with 5.1 in 2018, neither ever for Turing or
+later); [`docs/CUDA-AND-OPTIX.md`](docs/CUDA-AND-OPTIX.md) has the details. What the card does offer is Vulkan compute
+through NVK, outside Metal, which is where llama.cpp, whisper.cpp, VkFFT and your own kernels can run:
+[`docs/CUDA-ALTERNATIVES.md`](docs/CUDA-ALTERNATIVES.md) is the guide, `tools/nvk-compute-check` proves the card does
+compute that way, and `. tools/nvk-env.sh` points any Vulkan program at it.
 
 ## License
 

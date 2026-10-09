@@ -72,6 +72,9 @@ device is not qualified yet (see the scope note in [`RELEASE-1.1.0.md`](RELEASE-
 
 ## What to use instead
 
+The practical guide, with a probe that proves the card does Vulkan compute outside Metal and the build steps for
+llama.cpp and friends on it, is [`CUDA-ALTERNATIVES.md`](CUDA-ALTERNATIVES.md). In short:
+
 | You want | The macOS path | On this driver |
 |---|---|---|
 | Blender rendering | Cycles, Metal device (MetalRT for hardware ray tracing) | not qualified; a test target for the next releases |

@@ -4,14 +4,14 @@
 #
 #   build/build.sh                                        builds everything whose prerequisites are present
 #   build/build.sh check                                  only reports what this machine can build
-#   build/build.sh translator plugin agdc fb accel nvk app      any subset, built in this order
+#   build/build.sh translator plugin agdc fb accel nvk app computecheck     any subset, built in this order
 #
 # Outputs land in out/. RELEASE=1 selects the shipping plugin build. The component scripts read VULKAN_HEADERS, OGKM,
 # MESA_SRC, X, PLUGIN_SRC, OUT, TARGET and ALLOW_DIRTY; each script's header documents them.
 set -u
 REPO=$(cd "$(dirname "$0")/.." && pwd); cd "$REPO" || exit 2
 OGKM=${OGKM:-$HOME/ogkm610}; VH=${VULKAN_HEADERS:-$HOME/Vulkan-Headers}; MESA_SRC=${MESA_SRC:-$REPO/nvk/mesa}
-ALL="translator plugin agdc fb accel nvk app"
+ALL="translator plugin agdc fb accel nvk app computecheck"
 have() { command -v "$1" >/dev/null 2>&1; }
 # Each why_* prints why its component cannot be built on this machine, or nothing when it can.
 why_translator() { have cargo || { echo "no cargo: install a stable Rust toolchain (https://rustup.rs)"; return; }; have xcrun || echo "no Xcode (xcrun)"; }
@@ -26,6 +26,7 @@ why_nvk()        { have xcrun || { echo "no Xcode (xcrun)"; return; }
                    for t in meson ninja glslangValidator mesa_clc cargo bindgen cbindgen; do have "$t" || { echo "no $t on PATH (prerequisites: build/build263.sh)"; return; }; done
                    [ -f "$MESA_SRC/src/nouveau/vulkan/nvmtl_nvk_sass.c" ] || echo "no patched Mesa tree at $MESA_SRC: run nvk/prepare-mesa.sh"; }
 why_app()        { have xcrun || echo "no Xcode (xcrun, swiftc)"; }
+why_computecheck() { why_plugin; }
 build_translator() { build/build_xlate.sh; }
 build_plugin()     { build/build_plugin.sh; }
 build_agdc()       { build/build_agdc.sh; }
@@ -33,6 +34,7 @@ build_fb()         { build/fb_build.sh; }
 build_accel()      { build/accel_build.sh kexts/NVRM out/accel; }
 build_nvk()        { build/build263.sh; }
 build_app()        { app/build.sh "$REPO/out/app"; }
+build_computecheck() { build/build_compute_check.sh; }
 
 mode=build; [ "${1:-}" = check ] && { mode=check; shift; }
 want=${*:-$ALL}
