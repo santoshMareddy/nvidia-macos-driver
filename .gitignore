@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+# build outputs (build/build.sh and the component scripts)
+out/
+translator/target/
+nvk/mesa/
+app/build/

@@ -198,6 +198,9 @@ entry:
     let _ = std::fs::remove_dir_all(tmp);
 }
 
+// The fixture lives in the unpublished validation workspace (see README,
+// "Coverage policy"); build with --features validation-fixtures when it is present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn native_vertex_narrow_integer_attributes_use_32_bit_fetch_interface() {
     let ll = include_str!("../../../validation/fixtures/public/vertex_narrow_attributes.ll");

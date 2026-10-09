@@ -1,7 +1,9 @@
 use metal2vulkan::passes::{Stage, TransformOptions};
 use metal2vulkan::reflect::{ResourceKind, ShaderReflection};
 use metal2vulkan::translate_sanitized_native_reflected;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
 const FRAGMENT_ARGUMENT_BUFFER: &str = r#"target triple = "spirv-unknown-vulkan1.2"
 %Args = type <{ %"struct.metal::texture2d", ptr addrspace(1) }>
@@ -80,6 +82,9 @@ fn a_fragment_argument_buffer_reports_each_resident_once() {
     }
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_public_fixture_reports_each_resource_once() {
     let mut checked = 0;
@@ -147,6 +152,7 @@ fn the_descriptor_abi_gate_rejects_a_repeated_resource() {
     );
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -159,6 +165,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)

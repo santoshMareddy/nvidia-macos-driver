@@ -1,7 +1,9 @@
 use metal2vulkan::passes::{Stage, TransformOptions};
 use metal2vulkan::reflect::{ResourceAccess, ResourceKind, ShaderReflection};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
 const CONTRADICTED_ACCESS: &str = r#"target triple = "spirv-unknown-vulkan1.2"
 define void @k(ptr addrspace(1) %declared_read, ptr addrspace(1) %declared_write) {
@@ -48,6 +50,9 @@ fn a_declared_access_the_body_contradicts_is_replaced_by_what_the_body_does() {
     }
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_public_fixture_reflects_an_access_that_covers_its_module() {
     let mut checked = 0;
@@ -210,6 +215,7 @@ fn scratch(label: &str) -> PathBuf {
     directory
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -222,6 +228,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)

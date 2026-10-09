@@ -1,7 +1,13 @@
+#[cfg(feature = "validation-fixtures")]
 use metal2vulkan::passes::Stage;
+#[cfg(feature = "validation-fixtures")]
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+#[cfg(feature = "validation-fixtures")]
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
+#[cfg(feature = "validation-fixtures")]
 const NOT_ENFORCED_BY_SPIRV_VAL: &[&str] = &[
     "ClipDistance",
     "GroupNonUniformArithmetic",
@@ -13,6 +19,7 @@ const NOT_ENFORCED_BY_SPIRV_VAL: &[&str] = &[
     "ImageBuffer",
 ];
 
+#[cfg(feature = "validation-fixtures")]
 const IMAGE_CAPABILITIES: &[(&str, &str, bool)] = &[
     ("Sampled1D", "1D", false),
     ("Image1D", "1D", true),
@@ -20,6 +27,9 @@ const IMAGE_CAPABILITIES: &[(&str, &str, bool)] = &[
     ("ImageBuffer", "Buffer", true),
 ];
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_declared_image_capability_has_an_image_that_needs_it() {
     let mut checked = 0;
@@ -72,8 +82,12 @@ fn every_declared_image_capability_has_an_image_that_needs_it() {
     );
 }
 
+#[cfg(feature = "validation-fixtures")]
 const IMPLIED_BY_ANOTHER: &[&str] = &["GroupNonUniform"];
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn no_public_fixture_declares_a_capability_it_does_not_need() {
     let mut checked = 0;
@@ -119,6 +133,7 @@ fn no_public_fixture_declares_a_capability_it_does_not_need() {
     );
 }
 
+#[cfg(feature = "validation-fixtures")]
 const GROUP_ARITHMETIC_OPCODES: &[&str] = &[
     "OpGroupNonUniformIAdd",
     "OpGroupNonUniformFAdd",
@@ -133,6 +148,9 @@ const GROUP_ARITHMETIC_OPCODES: &[&str] = &[
     "OpGroupNonUniformBitwiseXor",
 ];
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn group_arithmetic_capability_follows_the_group_operation() {
     let mut checked = 0;
@@ -167,6 +185,9 @@ fn group_arithmetic_capability_follows_the_group_operation() {
     );
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn variable_pointers_is_not_declared_for_addresses() {
     let mut checked = 0;
@@ -200,6 +221,7 @@ fn variable_pointers_is_not_declared_for_addresses() {
     );
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn pointer_types(text: &str) -> HashSet<String> {
     text.lines()
         .filter_map(
@@ -215,6 +237,7 @@ fn pointer_types(text: &str) -> HashSet<String> {
         .collect()
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn capability_names(text: &str) -> HashSet<String> {
     text.lines()
         .filter_map(
@@ -226,6 +249,7 @@ fn capability_names(text: &str) -> HashSet<String> {
         .collect()
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn translated_fixtures() -> Vec<(String, String)> {
     public_fixtures()
         .into_iter()
@@ -240,6 +264,7 @@ fn translated_fixtures() -> Vec<(String, String)> {
         .collect()
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn declared_capabilities(spirv: &[u8]) -> Vec<(usize, String)> {
     let words = words_of(spirv);
     let text = metal2vulkan::disassemble(spirv).expect("disassemble");
@@ -272,6 +297,7 @@ fn declared_capabilities(spirv: &[u8]) -> Vec<(usize, String)> {
     found.into_iter().zip(names).collect()
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn without_instruction(spirv: &[u8], offset: usize) -> Vec<u8> {
     let words = words_of(spirv);
     let count = (words[offset] >> 16) as usize;
@@ -283,6 +309,7 @@ fn without_instruction(spirv: &[u8], offset: usize) -> Vec<u8> {
         .collect()
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn words_of(spirv: &[u8]) -> Vec<u32> {
     spirv
         .chunks_exact(4)
@@ -290,6 +317,7 @@ fn words_of(spirv: &[u8]) -> Vec<u32> {
         .collect()
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn scratch(label: &str) -> PathBuf {
     let directory = std::env::temp_dir().join(format!(
         "m2v_declared_capabilities_{}_{}",
@@ -300,6 +328,7 @@ fn scratch(label: &str) -> PathBuf {
     directory
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -312,6 +341,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)

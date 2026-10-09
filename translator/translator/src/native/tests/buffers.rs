@@ -12026,6 +12026,9 @@ merge:
     );
 }
 
+// The fixture lives in the unpublished validation workspace (see README,
+// "Coverage policy"); build with --features validation-fixtures when it is present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn native_raw_pointer_phi_admits_a_null_arm() {
     let ll = include_str!("../../../validation/fixtures/public/kernel_nullable_branch_cursor.ll");
@@ -12103,6 +12106,9 @@ fn native_raw_pointer_phi_admits_a_null_arm() {
     }
 }
 
+// The fixture lives in the unpublished validation workspace (see README,
+// "Coverage policy"); build with --features validation-fixtures when it is present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn native_nested_loop_raw_induction_cycle_stays_raw() {
     let ll = include_str!(

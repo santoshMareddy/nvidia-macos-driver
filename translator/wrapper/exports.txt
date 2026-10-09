@@ -1,0 +1,19 @@
+# C symbols libnvmtl_translate.dylib must export: the plugin (plugin/NVMTLLibraryLoad.m) dlsym()s them.
+# build/build_xlate.sh refuses a build missing any. Names as `nm -gU` prints them (leading underscore).
+_nvmtl_link_externs
+_nvmtl_link_runtime
+_nvmtl_link_visible
+_nvmtl_lower_buffer_addresses
+_nvmtl_lower_buffer_addresses_ex
+_nvmtl_lower_buffer_addresses_g2
+_nvmtl_lower_mesh
+_nvmtl_lower_mesh2
+_nvmtl_reflect
+_nvmtl_reflect_fc
+_nvmtl_translate
+_nvmtl_translate_fc
+_nvmtl_translate_free
+_nvmtl_translate_samplers
+_nvmtl_translate_set_caps
+_nvmtl_translate_set_threadgroup_lengths
+_nvmtl_visible_refs

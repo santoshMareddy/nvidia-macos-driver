@@ -1,0 +1,132 @@
+# Builds every component of the driver that the public tree can build, on GitHub's macOS runners, and checks that
+# the NVK patch applies to its Mesa base. See build/build.sh for what the tree cannot build and why.
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  translator:
+    name: translator (libnvmtl_translate.dylib, tests)
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add x86_64-apple-darwin
+          rustc --version
+      - name: SPIRV-Tools (the translator's tests run spirv-val on every module they emit)
+        run: |
+          brew install spirv-tools
+          spirv-val --version
+      - name: Build the dylib (build/build_xlate.sh)
+        run: build/build_xlate.sh
+      - name: Tests, translator crate
+        run: cargo test --release --no-fail-fast --manifest-path translator/translator/Cargo.toml --target-dir translator/target
+      - name: Tests, wrapper crate
+        if: always()
+        run: cargo test --release --no-fail-fast --manifest-path translator/wrapper/Cargo.toml --target-dir translator/target
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libnvmtl_translate
+          path: out/xlate/*/libnvmtl_translate.dylib
+          if-no-files-found: error
+
+  plugin:
+    name: plugin (NVMTLDriver)
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vulkan headers
+        run: |
+          git clone --depth 1 https://github.com/KhronosGroup/Vulkan-Headers "$HOME/Vulkan-Headers"
+          echo "Vulkan-Headers $(git -C "$HOME/Vulkan-Headers" rev-parse HEAD)"
+      - name: Build with diagnostics (build/build_plugin.sh)
+        run: build/build_plugin.sh
+      - name: Build the shipping variant (RELEASE=1)
+        run: RELEASE=1 build/build_plugin.sh
+      - name: Compiler warnings
+        if: always()
+        run: |
+          for f in out/plugin/*/NVMTLDriver.err; do
+            echo "== $f: $(grep -c ': warning:' "$f") warnings"
+            grep ': warning:' "$f" | sed 's/.*: warning: //' | sort | uniq -c | sort -rn | head -20
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NVMTLDriver
+          path: out/plugin
+          if-no-files-found: error
+
+  kext-agdc:
+    name: NVRMAGDC.kext
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (build/build_agdc.sh)
+        run: build/build_agdc.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NVRMAGDC.kext
+          path: out/agdc/NVRMAGDC.kext
+          if-no-files-found: error
+
+  app:
+    name: 1401 app and repository tests
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build 1401.app (app/build.sh)
+        run: app/build.sh "$PWD/out/app"
+      - name: Package the app
+        run: ditto -c -k --keepParent out/app/1401.app out/1401.app.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 1401.app
+          path: out/1401.app.zip
+          if-no-files-found: error
+      - name: Repository tests (tools/run_tests.sh)
+        run: tools/run_tests.sh "$PWD/out/app/1401.app"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-logs
+          path: out/tests
+          if-no-files-found: ignore
+
+  nvk-patch:
+    name: nvk-macos.patch applies to its Mesa base
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Mesa at nvk/MESA_BASE and apply the patch (nvk/prepare-mesa.sh)
+        run: nvk/prepare-mesa.sh "$RUNNER_TEMP/mesa"
+
+  scripts:
+    name: script syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash -n and py_compile on every script
+        run: |
+          set -e
+          for f in $(git ls-files '*.sh'); do bash -n "$f"; done
+          python3 -m py_compile $(git ls-files '*.py')
+          echo "every shell and Python file parses"

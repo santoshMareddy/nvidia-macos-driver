@@ -1013,6 +1013,11 @@ fn split_trailing_addrspace(s: &str) -> Result<(&str, u32), String> {
     };
     let digits = &s[open + " addrspace(".len()..s.len() - 1];
     if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit()) {
+        // Not this pointer's address space: the parenthesis belongs to a nested type such as
+        // `void (i32 addrspace(1)*)*`. A bare non-numeric address space is malformed LLVM.
+        if !digits.is_empty() && !digits.contains(['(', ')', '*', ',']) {
+            return Err(format!("native emitter: bad addrspace in `{s}*`: `{digits}` is not a number"));
+        }
         return Ok((s, 0));
     }
     let space = digits

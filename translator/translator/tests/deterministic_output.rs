@@ -1,7 +1,9 @@
 use metal2vulkan::passes::{Stage, TransformOptions};
 use metal2vulkan::reflect::ResourceKind;
 use metal2vulkan::{translate_sanitized_native, translate_sanitized_native_reflected};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
 fn scratch(label: &str) -> PathBuf {
     let directory = std::env::temp_dir().join(format!(
@@ -171,6 +173,9 @@ fn an_unbound_buffer_kernel_translates_to_the_same_bytes_every_time() {
     );
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_public_fixture_translates_to_the_same_bytes_every_time() {
     let mut checked = 0;
@@ -195,6 +200,9 @@ fn every_public_fixture_translates_to_the_same_bytes_every_time() {
     );
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_public_fixture_is_stable_under_every_stage_it_translates_under() {
     let mut checked = 0;
@@ -219,6 +227,7 @@ fn every_public_fixture_is_stable_under_every_stage_it_translates_under() {
     );
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -231,6 +240,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)

@@ -1,7 +1,11 @@
 use metal2vulkan::passes::{Stage, TransformOptions};
-use metal2vulkan::reflect::{ResourceAccess, ResourceKind, ShaderReflection};
+use metal2vulkan::reflect::{ResourceKind, ShaderReflection};
+#[cfg(feature = "validation-fixtures")]
+use metal2vulkan::reflect::ResourceAccess;
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
 const MIXED_ACCESS: &str = r#"target triple = "spirv-unknown-vulkan1.2"
 define void @k(ptr addrspace(1) %read_only, ptr addrspace(1) %declared_read, ptr addrspace(1) %written) {
@@ -171,6 +175,9 @@ fn a_read_write_image_the_body_only_reads_stops_demanding_stores() {
     );
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn a_decorated_buffer_never_reflects_a_write() {
     let mut checked = 0;
@@ -217,6 +224,9 @@ fn a_decorated_buffer_never_reflects_a_write() {
     );
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn no_public_fixture_writes_a_decorated_buffer() {
     let mut checked = 0;
@@ -444,6 +454,7 @@ fn scratch(label: &str) -> PathBuf {
     directory
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -456,6 +467,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)

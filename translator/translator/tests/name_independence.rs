@@ -1,6 +1,8 @@
 use metal2vulkan::passes::Stage;
 use metal2vulkan::translate_sanitized_native;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
 const CONTRACT_NAME_PREFIXES: &[&str] = &[
     "air.",
@@ -339,6 +341,9 @@ fn an_entry_point_already_named_main_translates_like_any_other() {
     );
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_public_fixture_translates_the_same_under_renamed_identifiers() {
     let mut checked = 0;
@@ -363,6 +368,7 @@ fn every_public_fixture_translates_the_same_under_renamed_identifiers() {
     );
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -375,6 +381,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)

@@ -254,7 +254,12 @@ OpFunctionEnd
             .filter(|i| i.class.opcode == Op::Load).collect();
         let wide = loads.iter().filter(|i| vector(i.result_type) && i.operands.get(1) == Some(&Operand::MemoryAccess(MemoryAccess::ALIGNED)))
             .filter_map(|i| match i.operands.get(2) { Some(Operand::LiteralBit32(a)) => Some(*a), _ => None }).filter(|a| *a >= 8).collect();
-        let words = loads.iter().filter(|i| i.operands.get(2) == Some(&Operand::LiteralBit32(4))).count();
+        // lower() keeps a word's stated alignment unless NVMTL_NO_AIR_ALIGN is set (buffer_addresses::keep_stated_align),
+        // so a hinted word the pass refuses to fuse stays Aligned 8 beside its Aligned 4 partner: count the word loads
+        // that carry an alignment literal, whatever it is, rather than the literal 4.
+        let words = loads.iter().filter(|i| !vector(i.result_type)
+            && matches!(i.operands.get(1), Some(Operand::MemoryAccess(f)) if f.contains(MemoryAccess::ALIGNED))
+            && matches!(i.operands.get(2), Some(Operand::LiteralBit32(_)))).count();
         (wide, words)
     }
     #[test] fn a_hinted_pair_whose_offsets_differ_by_four_is_one_aligned_8_load() {

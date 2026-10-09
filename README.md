@@ -126,14 +126,35 @@ sudo ./uninstall.sh && sudo shutdown -r now
 
 ## Build from source
 
-Requires Xcode 16, Rust (stable), Meson/Ninja, and NVIDIA's `open-gpu-kernel-modules` at tag `610.57.04`.
+Requires macOS 15 with Xcode 16 and a stable Rust toolchain. `build/build.sh check` says what the machine can build;
+`build/build.sh` builds all of it into `out/`. Component by component:
 
-```bash
-build/build_xlate.sh       # translator  -> libnvmtl_translate.dylib
-RELEASE=1 build/build_plugin.sh   # plugin -> NVMTLDriver.bundle (RELEASE=1 strips every diagnostic)
-build/build263.sh          # NVK: apply nvk/nvk-macos.patch to Mesa 17ca6174 first
-build/accel_build.sh <src> <out>  # kexts
-```
+| Component | Script | Extra prerequisite |
+|---|---|---|
+| translator (`libnvmtl_translate.dylib`) | `build/build_xlate.sh` | none |
+| plugin (`NVMTLDriver`) | `build/build_plugin.sh` (`RELEASE=1` strips every diagnostic) | `git clone https://github.com/KhronosGroup/Vulkan-Headers ~/Vulkan-Headers` |
+| NVRMAGDC.kext | `build/build_agdc.sh` | none |
+| NVRMFB.kext, NVAccel.kext | `build/fb_build.sh`, `build/accel_build.sh kexts/NVRM out/accel` | a Darwin build of NVIDIA's `open-gpu-kernel-modules` 610.57.04 at `~/ogkm610` (`OGKM`); see below |
+| NVK (`libvulkan_nouveau.dylib`) | `nvk/prepare-mesa.sh`, then `build/build263.sh` | Meson, Ninja, glslang, `mesa_clc`, Python mako and pyyaml, bindgen and cbindgen |
+| 1401 app | `app/build.sh` | none |
+
+Tests: `cargo test` in `translator/translator` (needs `spirv-val` on PATH: `brew install spirv-tools`) and in
+`translator/wrapper`; `tools/run_tests.sh [1401.app]` on macOS.
+The GitHub Actions workflow (`.github/workflows/build.yml`) builds the translator, the plugin, NVRMAGDC and the app on
+macOS runners, runs those tests, and checks that `nvk/nvk-macos.patch` applies to Mesa `17ca6174`.
+
+Not buildable from the public tree: **NVRM.kext** links `libnvkernel.a` and `libnvkms.a` from a Darwin build of
+NVIDIA's kernel modules (NVIDIA publishes a Linux build system only; the port that produces `src/nvidia/_out/Darwin_x86_64`
+is not in this repository, and `kexts/NVRM/rmcc.py` and `build-completion-archive.py` expect it). NVRMFB and NVAccel
+take their compile flags from the same build. `NVIDIAShared.bundle`, the Vulkan loader (`libvulkan.dylib`,
+`nvk_icd.json`), `air-opt`, the bundle `Info.plist` and the GSP firmware come from a release package.
+
+## CUDA and OptiX
+
+Not available, and not buildable from this tree: both are closed NVIDIA software shipped for Linux and Windows only
+(CUDA on macOS ended with 10.2 in 2019, OptiX with 5.1 in 2018, neither ever for Turing or later). What the driver
+offers instead, and the parts of this tree that already run NVIDIA's compiler output, are in
+[`docs/CUDA-AND-OPTIX.md`](docs/CUDA-AND-OPTIX.md).
 
 ## License
 

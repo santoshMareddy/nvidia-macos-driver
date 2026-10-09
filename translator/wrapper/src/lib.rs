@@ -588,7 +588,9 @@ pub unsafe extern "C" fn nvmtl_translate_samplers(
         Err(e)=>{if !err.is_null()&&err_len>0{let n=e.len().min(err_len-1);std::ptr::copy_nonoverlapping(e.as_ptr(),err.cast(),n);*err.add(n)=0;}-1}
     }
 }
-#[cfg(test)]
+// Validates SPIR-V from the author's private captures under $HOME/nvmtl-tests (not published);
+// run with --features private-captures where they exist.
+#[cfg(all(test, feature = "private-captures"))]
 mod pixel_sampler_checks {
  use super::*;
  use spirv_tools::val::Validator;
@@ -610,7 +612,9 @@ mod pixel_sampler_checks {
   }}
  }
 }
-#[cfg(test)]
+// Validates SPIR-V from the author's private captures under $HOME/nvmtl-tests (not published);
+// run with --features private-captures where they exist.
+#[cfg(all(test, feature = "private-captures"))]
 mod ca_named_checks {
  use spirv_tools::val::Validator;
  #[test] fn ca_named_modules_validate() {

@@ -6,7 +6,9 @@ use metal2vulkan::reflect::{
 };
 use metal2vulkan::translate_sanitized_native_reflected;
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
 fn bindings_the_module_declares(spirv: &[u8]) -> BTreeSet<(u32, u32)> {
     let text = metal2vulkan::disassemble(spirv).expect("disassemble the translated module");
@@ -499,6 +501,9 @@ fn array_lengths_the_module_declares(spirv: &[u8]) -> std::collections::BTreeMap
     declared
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_public_fixture_reflects_every_descriptor_it_declares() {
     let mut declared = 0;
@@ -604,6 +609,9 @@ fn constexpr_samplers_are_reported_on_the_bindings_the_module_gives_them() {
     }
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_public_fixture_reflects_every_descriptor_it_declares_under_a_shifted_layout() {
     let layout = shifted_layout();
@@ -691,6 +699,7 @@ fn shifted_layout() -> DescriptorLayout {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn selected_bands(layout: DescriptorLayout) -> [DescriptorBindingRange; 8] {
     [
         layout.buffers,
@@ -704,6 +713,7 @@ fn selected_bands(layout: DescriptorLayout) -> [DescriptorBindingRange; 8] {
     ]
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -716,6 +726,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)
@@ -950,6 +961,9 @@ fn a_constexpr_sampler_no_sample_reads_is_not_reported() {
     }
 }
 
+// The fixture lives in the unpublished validation workspace (see README,
+// "Coverage policy"); build with --features validation-fixtures when it is present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn native_ray_instance_user_id_table_has_its_own_reserved_contract() {
     let ll = include_str!("../validation/fixtures/public/kernel_instance_as_intersect.ll");
@@ -991,6 +1005,9 @@ fn native_ray_instance_user_id_table_has_its_own_reserved_contract() {
     }
 }
 
+// The fixture lives in the unpublished validation workspace (see README,
+// "Coverage policy"); build with --features validation-fixtures when it is present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn native_ray_instance_user_id_table_refuses_a_real_buffer_collision() {
     let ll = include_str!("../validation/fixtures/public/kernel_instance_as_intersect.ll").replace(

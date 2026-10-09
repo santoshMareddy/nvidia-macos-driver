@@ -2,7 +2,9 @@ use metal2vulkan::meta::{TextureComponent, TextureDimension, TextureShape};
 use metal2vulkan::passes::{Stage, TransformOptions};
 use metal2vulkan::reflect::ShaderReflection;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
 const CUBE_TEXEL_COPY: &str = r#"target triple = "spirv-unknown-vulkan1.2"
 
@@ -116,6 +118,9 @@ fn a_texel_read_cube_reflects_the_two_dimensional_array_it_binds() {
     assert_eq!(source.component, TextureComponent::Float);
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn every_public_fixture_reflects_the_images_it_binds() {
     let mut checked = 0;
@@ -307,6 +312,7 @@ fn scratch(label: &str) -> PathBuf {
     directory
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -319,6 +325,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)

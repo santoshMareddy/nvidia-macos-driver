@@ -174,6 +174,9 @@ fn driver_construction_api_preserves_optional_half_addresses() {
     }
 }
 
+// The fixture lives in the unpublished validation workspace (see README,
+// "Coverage policy"); build with --features validation-fixtures when it is present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn selected_constant_config_first_byte_keeps_descriptor_element_pointer() {
     let source =

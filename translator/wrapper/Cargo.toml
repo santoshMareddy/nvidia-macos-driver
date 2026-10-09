@@ -11,3 +11,7 @@ rspirv = "0.13"
 
 [dev-dependencies]
 spirv-tools = "0.13.3"
+
+[features]
+# Tests over the author's private captures (see src/lib.rs); off so `cargo test` runs from a clean checkout.
+private-captures = []

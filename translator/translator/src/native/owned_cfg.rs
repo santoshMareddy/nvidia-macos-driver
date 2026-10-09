@@ -6551,7 +6551,15 @@ mod tests {
 
     fn assert_owned_invalid(module: &Module, expected: &str) {
         match owned_module_failure(module) {
-            Some(OwnedModuleFailure::Invalid(error)) => assert_eq!(error, expected),
+            // A contract message may carry a bracketed diagnostic suffix (" [coordinate … ]") after the
+            // sentence the test names; the sentence itself must match exactly.
+            Some(OwnedModuleFailure::Invalid(error)) => assert!(
+                error == expected
+                    || error
+                        .strip_prefix(expected)
+                        .is_some_and(|rest| rest.starts_with(" [") && rest.ends_with(']')),
+                "expected `{expected}`, got `{error}`"
+            ),
             Some(OwnedModuleFailure::CfgConstruction(error)) => {
                 panic!("invalid value contract was misclassified as CFG construction: {error}")
             }

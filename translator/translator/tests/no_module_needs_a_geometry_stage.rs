@@ -1,6 +1,13 @@
+#[cfg(feature = "validation-fixtures")]
 use metal2vulkan::passes::Stage;
-use std::path::{Path, PathBuf};
+#[cfg(feature = "validation-fixtures")]
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn no_public_fixture_declares_the_geometry_capability() {
     let mut checked = 0;
@@ -40,6 +47,7 @@ fn no_public_fixture_declares_the_geometry_capability() {
     );
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn scratch(label: &str) -> PathBuf {
     let directory = std::env::temp_dir().join(format!(
         "m2v_geometry_capability_{}_{}",
@@ -50,6 +58,7 @@ fn scratch(label: &str) -> PathBuf {
     directory
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -62,6 +71,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)

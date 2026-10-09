@@ -1,7 +1,15 @@
+#[cfg(feature = "validation-fixtures")]
 use metal2vulkan::passes::Stage;
-use metal2vulkan::{disassemble, translate_sanitized_native};
-use std::path::{Path, PathBuf};
+#[cfg(feature = "validation-fixtures")]
+use metal2vulkan::disassemble;
+#[cfg(feature = "validation-fixtures")]
+use metal2vulkan::translate_sanitized_native;
+#[cfg(feature = "validation-fixtures")]
+use std::path::PathBuf;
+#[cfg(feature = "validation-fixtures")]
+use std::path::Path;
 
+#[cfg(feature = "validation-fixtures")]
 fn global_variables_no_instruction_references(spirv: &[u8]) -> Vec<String> {
     let text = disassemble(spirv).expect("disassemble the translated module");
     let mut declared: Vec<(String, String)> = Vec::new();
@@ -34,12 +42,14 @@ fn global_variables_no_instruction_references(spirv: &[u8]) -> Vec<String> {
         .collect()
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn is_id(token: &str) -> bool {
     token.strip_prefix('%').is_some_and(|digits| {
         !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())
     })
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn scratch(label: &str) -> PathBuf {
     let directory = std::env::temp_dir().join(format!(
         "m2v_live_globals_{}_{}",
@@ -50,6 +60,7 @@ fn scratch(label: &str) -> PathBuf {
     directory
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn assert_no_unused_globals(label: &str, spirv: &[u8]) -> usize {
     let unused = global_variables_no_instruction_references(spirv);
     assert!(
@@ -66,6 +77,9 @@ fn assert_no_unused_globals(label: &str, spirv: &[u8]) -> usize {
         .count()
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn no_public_fixture_translates_to_a_module_with_an_unused_global_variable() {
     let mut variables = 0;
@@ -92,6 +106,9 @@ fn no_public_fixture_translates_to_a_module_with_an_unused_global_variable() {
     );
 }
 
+// Sweeps the authored corpus in validation/fixtures/public, which ships only in the unpublished
+// validation workspace (README, "Coverage policy"); build with --features validation-fixtures when present.
+#[cfg(feature = "validation-fixtures")]
 #[test]
 fn no_fixture_leaves_an_unused_global_variable_under_any_stage_it_translates_under() {
     let mut variables = 0;
@@ -118,6 +135,7 @@ fn no_fixture_leaves_an_unused_global_variable_under_any_stage_it_translates_und
     );
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn stage_of(source: &str) -> Option<Stage> {
     if source.contains("!air.vertex =") {
         Some(Stage::Vertex)
@@ -130,6 +148,7 @@ fn stage_of(source: &str) -> Option<Stage> {
     }
 }
 
+#[cfg(feature = "validation-fixtures")]
 fn public_fixtures() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("validation/fixtures/public");
     let mut paths = std::fs::read_dir(&root)
