@@ -13,7 +13,15 @@ run() {   # run <name> <command...>
   if "$@" >"$log" 2>&1; then pass=$((pass+1)); echo "ok    $name"
   else fail=$((fail+1)); failed="$failed $name"; echo "FAIL  $name"; tail -20 "$log" | sed 's/^/      /'; fi
 }
-for t in tools/test_*.py; do run "$(basename "$t" .py)" python3 -I "$t"; done
+for t in tools/test_*.py; do
+  name=$(basename "$t" .py)
+  case $name in
+    test_diagnostics_prerequisites)   # takes the built preflight checker; nothing to check without the app
+      if [ -n "$APP" ]; then run "$name" python3 -I "$t" "$APP/Contents/Resources/nullmoth-diagnostics-preflight"
+      else echo "skip  $name (pass the built 1401.app to run it)"; fi;;
+    *) run "$name" python3 -I "$t";;
+  esac
+done
 for t in tools/test_*.js; do run "$(basename "$t" .js)" node "$t"; done
 if [ -n "$APP" ]; then run test_optional_diagnostics bash tools/test_optional_diagnostics.sh "$APP"
 else echo "skip  test_optional_diagnostics (pass the built 1401.app to run it)"; fi
