@@ -24,6 +24,9 @@ func redactSupportText(_ source: String, homes: [String], identities: [String: S
     }
     let rules: [(String, String)] = [
         (#"(?i)[/]Users[/][^/\s"']+"#, "[home]"),
+        // Apple .ips crash reports store paths as JSON with escaped slashes ("\/Users\/name\/..."); the plain rule
+        // above never matches that form, so without this the home path (and any other account's name in it) uploads.
+        (#"(?i)\\/Users(?:\\/|[^/\\\s"'])+"#, "[home]"),
         (#"\b[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\b"#, "[uuid]"),
         (#"\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b"#, "[mac]"),
         (#"\b(?:\d{1,3}\.){3}\d{1,3}\b"#, "[ip]"),
