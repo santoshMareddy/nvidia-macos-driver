@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 # Point any Vulkan program at the NVIDIA card through NVK, the Vulkan driver this package installs:
 #     . tools/nvk-env.sh
 # The Khronos loader honours these in every process that uses it, including loaders an application ships itself.

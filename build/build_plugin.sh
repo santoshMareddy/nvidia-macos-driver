@@ -7,16 +7,19 @@
 # Environment (all optional):
 #   PLUGIN_SRC      plugin tree                 (default: <repo>/plugin)
 #   OUT             output directory            (default: <repo>/out/plugin)
-#   VULKAN_HEADERS  Khronos Vulkan-Headers tree (default: $HOME/Vulkan-Headers;
-#                   git clone https://github.com/KhronosGroup/Vulkan-Headers ~/Vulkan-Headers)
+#   VULKAN_HEADERS  Khronos Vulkan-Headers tree (default: the pinned checkout build/fetch-deps.sh makes in
+#                   out/deps, else ~/Vulkan-Headers). RELEASE=1 accepts only the pinned commit (build/inputs.lock).
 #   ALLOW_DIRTY=1   build with uncommitted edits in the tree
 #
 # Needs macOS with Xcode 16: the plugin links Metal.framework and IOSurface.framework.
 set -u
 REPO=$(cd "$(dirname "$0")/.." && pwd)
-S=${PLUGIN_SRC:-$REPO/plugin}; OUT=${OUT:-$REPO/out/plugin}; VH=${VULKAN_HEADERS:-$HOME/Vulkan-Headers}
+# shellcheck source=build/pins.sh
+. "$REPO/build/pins.sh"
+S=${PLUGIN_SRC:-$REPO/plugin}; OUT=${OUT:-$REPO/out/plugin}; VH=$(vulkan_headers_dir)
 command -v xcrun >/dev/null 2>&1 || { echo "STOP: xcrun not found; the plugin needs macOS with Xcode 16"; exit 2; }
-[ -f "$VH/include/vulkan/vulkan_core.h" ] || { echo "STOP: no Vulkan headers at $VH: git clone https://github.com/KhronosGroup/Vulkan-Headers \"$VH\" (or set VULKAN_HEADERS)"; exit 2; }
+[ -f "$VH/include/vulkan/vulkan_core.h" ] || { echo "STOP: no Vulkan headers at $VH: run build/fetch-deps.sh (or set VULKAN_HEADERS)"; exit 2; }
+require_pinned_vulkan_headers "$VH" || exit 2
 [ -f "$S/NVMTLDevice.m" ] || { echo "STOP: no plugin tree at $S (set PLUGIN_SRC)"; exit 2; }
 cd "$S" || exit 2
 if [ -z "${ALLOW_DIRTY:-}" ] && [ -n "$(git status --porcelain -- . 2>/dev/null)" ]; then

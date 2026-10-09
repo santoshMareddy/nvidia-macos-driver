@@ -6,19 +6,22 @@
 #
 #   translator/run_tests.sh
 #
-# Needs cargo and spirv-val on PATH (brew install spirv-tools): nearly every test validates the module it emits, and
-# the spirv-val version can move the verdict-dependent entries of the list.
+# Needs rustup (the toolchain pinned in translator/rust-toolchain.toml) and spirv-val on PATH (brew install
+# spirv-tools): nearly every test validates the module it emits, and the spirv-val version can move the
+# verdict-dependent entries of the list. Crates come from the Cargo.lock files only (--locked).
 set -u
 REPO=$(cd "$(dirname "$0")/.." && pwd); X=$REPO/translator; LOGS=$REPO/out/tests; mkdir -p "$LOGS"
 KNOWN=$X/known-failing-tests.txt; TD=${CARGO_TARGET_DIR:-$X/target}
 command -v cargo >/dev/null 2>&1 || { echo "STOP: cargo not found; install a stable Rust toolchain (https://rustup.rs)"; exit 2; }
 command -v spirv-val >/dev/null 2>&1 || { echo "STOP: spirv-val not on PATH (brew install spirv-tools); the tests validate every module they emit"; exit 2; }
 [ -f "$KNOWN" ] || { echo "STOP: $KNOWN is missing"; exit 2; }
+cd "$X" || exit 2                                                # the toolchain file applies inside translator/
 echo "spirv-val: $(spirv-val --version 2>&1 | head -1)"
+echo "$(rustc --version)"
 : > "$LOGS/failed-tests.txt"; rc=0
 for crate in translator wrapper; do
   log=$LOGS/cargo-test-$crate.log
-  cargo test --release --no-fail-fast --manifest-path "$X/$crate/Cargo.toml" --target-dir "$TD" > "$log" 2>&1
+  cargo test --release --locked --no-fail-fast --manifest-path "$X/$crate/Cargo.toml" --target-dir "$TD" > "$log" 2>&1
   if grep -qE 'could not compile|^error\[E[0-9]+\]' "$log"; then
     echo "STOP: $crate tests did not build; see $log"; grep -E -m 5 'could not compile|^error\[E[0-9]+\]' "$log"; rc=1; continue
   fi

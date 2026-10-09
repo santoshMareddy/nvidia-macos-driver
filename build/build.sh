@@ -10,13 +10,15 @@
 # MESA_SRC, X, PLUGIN_SRC, OUT, TARGET and ALLOW_DIRTY; each script's header documents them.
 set -u
 REPO=$(cd "$(dirname "$0")/.." && pwd); cd "$REPO" || exit 2
-OGKM=${OGKM:-$HOME/ogkm610}; VH=${VULKAN_HEADERS:-$HOME/Vulkan-Headers}; MESA_SRC=${MESA_SRC:-$REPO/nvk/mesa}
+# shellcheck source=build/pins.sh
+. "$REPO/build/pins.sh"
+OGKM=${OGKM:-$HOME/ogkm610}; VH=$(vulkan_headers_dir); MESA_SRC=${MESA_SRC:-$REPO/nvk/mesa}
 ALL="translator plugin agdc fb accel nvk app computecheck"
 have() { command -v "$1" >/dev/null 2>&1; }
 # Each why_* prints why its component cannot be built on this machine, or nothing when it can.
 why_translator() { have cargo || { echo "no cargo: install a stable Rust toolchain (https://rustup.rs)"; return; }; have xcrun || echo "no Xcode (xcrun)"; }
 why_plugin()     { have xcrun || { echo "no Xcode (xcrun)"; return; }
-                   [ -f "$VH/include/vulkan/vulkan_core.h" ] || echo "no Vulkan-Headers at $VH: git clone https://github.com/KhronosGroup/Vulkan-Headers \"$VH\" (or set VULKAN_HEADERS)"; }
+                   [ -f "$VH/include/vulkan/vulkan_core.h" ] || echo "no Vulkan headers at $VH: run build/fetch-deps.sh (or set VULKAN_HEADERS)"; }
 why_agdc()       { have xcrun || echo "no Xcode (xcrun)"; }
 why_rm_kext()    { have xcrun || { echo "no Xcode (xcrun)"; return; }
                    [ -f "$OGKM/src/nvidia/_out/Darwin_x86_64/compile_cmds.sh" ] || echo "no Darwin build of open-gpu-kernel-modules 610.57.04 at $OGKM (set OGKM): NVIDIA publishes a Linux build system only, and the Darwin port that produces src/nvidia/_out/Darwin_x86_64 is not in this repository"; }

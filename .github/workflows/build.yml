@@ -1,5 +1,9 @@
 # Builds every component of the driver that the public tree can build, on GitHub's macOS runners, and checks that
 # the NVK patch applies to its Mesa base. See build/build.sh for what the tree cannot build and why.
+#
+# Third-party actions are pinned to a commit SHA (the tag in the comment is what that commit was released as); the
+# build's own inputs are pinned in build/inputs.lock, translator/rust-toolchain.toml and nvk/MESA_BASE. Every checkout
+# sets persist-credentials: false so the repository token is not written into .git/config for later steps to reuse.
 name: build
 
 on:
@@ -20,13 +24,14 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - name: Rust toolchain
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Rust toolchain (pinned in translator/rust-toolchain.toml)
         run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
-          rustup target add x86_64-apple-darwin
-          rustc --version
+          tc=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' translator/rust-toolchain.toml)
+          rustup toolchain install "$tc" --profile minimal --target x86_64-apple-darwin
+          ( cd translator && rustc --version )
       - name: SPIRV-Tools (the translator's tests run spirv-val on every module they emit)
         run: |
           brew install spirv-tools
@@ -35,13 +40,13 @@ jobs:
         run: build/build_xlate.sh
       - name: Tests, both crates, against translator/known-failing-tests.txt (translator/run_tests.sh)
         run: translator/run_tests.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: ${{ !cancelled() }}   # still runs after a failure, but not on a cancelled run (that would hold the concurrency group)
         with:
           name: translator-test-logs
           path: out/tests
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: libnvmtl_translate
           path: out/xlate/*/libnvmtl_translate.dylib
@@ -52,18 +57,18 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - name: Vulkan headers
-        run: |
-          git clone --depth 1 https://github.com/KhronosGroup/Vulkan-Headers "$HOME/Vulkan-Headers"
-          echo "Vulkan-Headers $(git -C "$HOME/Vulkan-Headers" rev-parse HEAD)"
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Vulkan headers pinned in build/inputs.lock (build/fetch-deps.sh)
+        run: build/fetch-deps.sh
       - name: Build with diagnostics (build/build_plugin.sh)
         run: build/build_plugin.sh
-      - name: Build the shipping variant (RELEASE=1)
+      - name: Build the shipping variant (RELEASE=1, pinned headers required)
         run: RELEASE=1 build/build_plugin.sh
       - name: Build nvk-compute-check (build/build_compute_check.sh)
         run: build/build_compute_check.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: nvk-compute-check
           path: out/compute-check/nvk-compute-check
@@ -75,7 +80,7 @@ jobs:
             echo "== $f: $(grep -c ': warning:' "$f") warnings"
             grep ': warning:' "$f" | sed 's/.*: warning: //' | sort | uniq -c | sort -rn | head -20
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: NVMTLDriver
           path: out/plugin
@@ -86,10 +91,12 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
       - name: Build (build/build_agdc.sh)
         run: build/build_agdc.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: NVRMAGDC.kext
           path: out/agdc/NVRMAGDC.kext
@@ -100,19 +107,21 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
       - name: Build 1401.app (app/build.sh)
         run: app/build.sh "$PWD/out/app"
       - name: Package the app
         run: ditto -c -k --keepParent out/app/1401.app out/1401.app.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: 1401.app
           path: out/1401.app.zip
           if-no-files-found: error
       - name: Repository tests (tools/run_tests.sh)
         run: tools/run_tests.sh "$PWD/out/app/1401.app"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: ${{ !cancelled() }}   # still runs after a failure, but not on a cancelled run (that would hold the concurrency group)
         with:
           name: test-logs
@@ -124,7 +133,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
       - name: Fetch Mesa at nvk/MESA_BASE and apply the patch (nvk/prepare-mesa.sh)
         run: nvk/prepare-mesa.sh "$RUNNER_TEMP/mesa"
 
@@ -133,7 +144,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
       - name: Vulkan headers, loader, lavapipe, glslang, SPIRV-Tools
         run: sudo apt-get update -q && sudo apt-get install -y -q libvulkan-dev mesa-vulkan-drivers glslang-tools spirv-tools
       - name: The committed kernel still compiles and validates
@@ -151,10 +164,47 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
       - name: bash -n and py_compile on every script
         run: |
           set -e
           for f in $(git ls-files '*.sh'); do bash -n "$f"; done
           python3 -m py_compile $(git ls-files '*.py')
           echo "every shell and Python file parses"
+
+  production:
+    name: production build (locked inputs, SHA256SUMS, manifest)
+    runs-on: macos-15
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      id-token: write        # attest-build-provenance mints an OIDC token to sign the attestation
+      attestations: write    # and records the attestation against the repository
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Rust toolchain (pinned in translator/rust-toolchain.toml)
+        run: |
+          tc=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' translator/rust-toolchain.toml)
+          rustup toolchain install "$tc" --profile minimal --target x86_64-apple-darwin
+      - name: Build (build/production.sh)
+        run: build/production.sh
+      - name: Show SHA256SUMS and BUILD-MANIFEST.txt
+        run: |
+          echo "== BUILD-MANIFEST.txt"; cat out/production/BUILD-MANIFEST.txt
+          echo "== SHA256SUMS";        cat out/production/SHA256SUMS
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: production
+          path: out/production
+          if-no-files-found: error
+      # Provenance ties the artifacts to this workflow run and commit. Only on a release tag or a manual run:
+      # a fork or a pull request may lack the OIDC permissions the attestation needs, and need not be attested.
+      - name: Attest build provenance
+        if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: out/production/SHA256SUMS

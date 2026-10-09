@@ -1,0 +1,6 @@
+# The Rust toolchain the translator is built and tested with (the production lock; see build/inputs.lock).
+# rustup picks this up for any cargo command run inside translator/. Bump it on purpose, after a green CI run.
+[toolchain]
+channel = "1.99.0"
+profile = "minimal"
+targets = ["x86_64-apple-darwin"]

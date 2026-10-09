@@ -1,0 +1,8 @@
+# Third-party inputs of the build, pinned. Sourced by build/pins.sh; build/fetch-deps.sh fetches them and checks the
+# commits, and a RELEASE=1 (production) build refuses anything else. Change a pin on purpose, in its own commit, and
+# only after CI is green with it. The other locks: translator/rust-toolchain.toml (Rust), the Cargo.lock files
+# (crates, enforced with --locked), nvk/MESA_BASE (Mesa, full commit), and the commit SHAs of the GitHub Actions in
+# .github/workflows/build.yml.
+VULKAN_HEADERS_URL=https://github.com/KhronosGroup/Vulkan-Headers
+VULKAN_HEADERS_TAG=v1.4.362
+VULKAN_HEADERS_COMMIT=ee2ec5fd83dafce291024683b50dc89219333076
