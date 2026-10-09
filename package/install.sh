@@ -43,12 +43,18 @@ rollback_install() {
   done
   rm -rf /Library/NullMoth/kexts "$FW" || failed=1
   [ ! -d "$BK/kexts" ] || ditto "$BK/kexts" /Library/NullMoth/kexts || failed=1
-  [ ! -d "$BK/nvfw" ] || ditto "$BK/nvfw" "$FW" || failed=1
+  [ ! -d "$BK/nvfw" ] || { fresh_firmware_dir && ditto "$BK/nvfw" "$FW"; } || failed=1
   if [ -f "$BK/AuxiliaryKernelExtensions.kc" ]; then cp -p "$BK/AuxiliaryKernelExtensions.kc" "$KC" || failed=1
   else rm -f "$KC" || failed=1; fi
   if [ -f "$BK/os-major" ]; then cp -p "$BK/os-major" /Library/NullMoth/os-major || failed=1
   else rm -f /Library/NullMoth/os-major || failed=1; fi
   return "$failed"
+}
+# NVRM.kext reads the GSP firmware from $FW at every start, and /Users/Shared is writable by every user. Give the
+# firmware a directory root creates fresh (mkdir without -p fails if anything reappeared at $FW after the rm), owned
+# by root and closed to other writers, so no other user can pre-plant, redirect, replace or block it.
+fresh_firmware_dir() {
+  rm -rf "$FW" && mkdir -m 755 "$FW" && chown root:wheel "$FW"
 }
 step() { echo; echo "== $*"; }; ok() { echo "   ok  $*"; }
 die() {
@@ -152,7 +158,7 @@ for b in NVMTLDriver.bundle NVIDIAShared.bundle nvmtl nvmtl-allow.txt; do [ ! -e
 [ ! -f "$KC" ] || backup_copy "kernel collection" cp -p "$KC" "$BK/AuxiliaryKernelExtensions.kc"
 [ ! -d /Library/NullMoth/kexts ] || backup_copy "cached accelerators" ditto /Library/NullMoth/kexts "$BK/kexts"
 [ ! -f /Library/NullMoth/os-major ] || backup_copy "OS record" cp -p /Library/NullMoth/os-major "$BK/os-major"
-[ ! -d "$FW" ] || backup_copy firmware ditto "$FW" "$BK/nvfw"
+[ ! -d "$FW" ] || [ -L "$FW" ] || backup_copy firmware ditto "$FW" "$BK/nvfw"   # a link at $FW is not ours: never follow it
 ok "backup written"
 
 step "5. install"
@@ -167,12 +173,15 @@ for target in 15 26; do
 done
 chown -R root:wheel /Library/NullMoth/kexts && chmod -R go-w /Library/NullMoth/kexts || die "cached accelerator permissions"
 echo "$MAJ" > /Library/NullMoth/os-major || die "record selected OS"
-mkdir -p "$GB" "$FW" || die "create bundle and firmware directories"
+mkdir -p "$GB" || die "create the bundle directory"
 for b in NVMTLDriver.bundle NVIDIAShared.bundle nvmtl; do rm -rf "$GB/$b" && ditto "$HERE/Library/GPUBundles/$b" "$GB/$b" || die "copy $b (restore from $BK)"; done
 cp "$HERE/Library/GPUBundles/nvmtl-allow.txt" "$GB/" || die "copy bundle allow list"
+fresh_firmware_dir || die "create a root-owned firmware directory at $FW (restore from $BK)"
 ditto "$HERE/Users/Shared/nvfw" "$FW" || die "copy firmware"
 for k in $KEXTS; do chown -R root:wheel "$EXT/$k.kext" && chmod -R 755 "$EXT/$k.kext" || die "permissions for $k"; done
-chown -R root:wheel "$GB/NVMTLDriver.bundle" "$GB/NVIDIAShared.bundle" "$GB/nvmtl" "$GB/nvmtl-allow.txt" && chmod -R a+rX "$FW" || die "bundle or firmware permissions"
+# Metal loads the bundles into every process and the kernel loads the firmware: root-owned, readable, writable by root only.
+chown -R root:wheel "$GB/NVMTLDriver.bundle" "$GB/NVIDIAShared.bundle" "$GB/nvmtl" "$GB/nvmtl-allow.txt" "$FW" &&
+  chmod -R go-w,a+rX "$GB/NVMTLDriver.bundle" "$GB/NVIDIAShared.bundle" "$GB/nvmtl" "$GB/nvmtl-allow.txt" "$FW" || die "bundle or firmware permissions"
 NEWKC="$KC.nullmoth-install-new"; rm -f "$NEWKC"
 kmutil create -n aux --volume-root / ${KARG[@]+"${KARG[@]}"} -B $KB -S $KS --repository "$EXT" -A "$NEWKC" -z >"$T/kmutil2.log" 2>&1 || die "live kernel collection build failed (restore from $BK)"
 [ -s "$NEWKC" ] || die "live kernel collection build produced no output (restore from $BK)"
