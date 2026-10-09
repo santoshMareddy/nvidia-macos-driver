@@ -33,11 +33,14 @@ jobs:
           spirv-val --version
       - name: Build the dylib (build/build_xlate.sh)
         run: build/build_xlate.sh
-      - name: Tests, translator crate
-        run: cargo test --release --no-fail-fast --manifest-path translator/translator/Cargo.toml --target-dir translator/target
-      - name: Tests, wrapper crate
-        if: always()
-        run: cargo test --release --no-fail-fast --manifest-path translator/wrapper/Cargo.toml --target-dir translator/target
+      - name: Tests, both crates, against translator/known-failing-tests.txt (translator/run_tests.sh)
+        run: translator/run_tests.sh
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}   # still runs after a failure, but not on a cancelled run (that would hold the concurrency group)
+        with:
+          name: translator-test-logs
+          path: out/tests
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: libnvmtl_translate
@@ -59,7 +62,7 @@ jobs:
       - name: Build the shipping variant (RELEASE=1)
         run: RELEASE=1 build/build_plugin.sh
       - name: Compiler warnings
-        if: always()
+        if: ${{ !cancelled() }}   # still runs after a failure, but not on a cancelled run (that would hold the concurrency group)
         run: |
           for f in out/plugin/*/NVMTLDriver.err; do
             echo "== $f: $(grep -c ': warning:' "$f") warnings"
@@ -103,7 +106,7 @@ jobs:
       - name: Repository tests (tools/run_tests.sh)
         run: tools/run_tests.sh "$PWD/out/app/1401.app"
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ !cancelled() }}   # still runs after a failure, but not on a cancelled run (that would hold the concurrency group)
         with:
           name: test-logs
           path: out/tests

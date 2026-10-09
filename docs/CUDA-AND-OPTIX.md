@@ -86,6 +86,7 @@ The build was the other half of the request. The scripts under `build/` were tie
 makes every script build from this checkout with environment overrides, adds `build/build.sh` as the one entry point
 that also states what the public tree cannot build (NVRM.kext's link inputs, the release-package files), adds
 `nvk/prepare-mesa.sh` to fetch Mesa at `nvk/MESA_BASE` and apply the patch, gates the translator tests that read the unpublished fixture corpus (and the wrapper's tests over the author's
-private captures) behind Cargo features so `cargo test` compiles and runs from a clean checkout, and adds a GitHub Actions workflow that builds the translator,
+private captures) behind Cargo features so `cargo test` compiles and runs from a clean checkout (`translator/run_tests.sh` runs both
+suites and fails only on failures outside `translator/known-failing-tests.txt`), and adds a GitHub Actions workflow that builds the translator,
 the plugin, NVRMAGDC and the 1401 app on macOS runners, runs the repository's tests, and checks the NVK patch against
 its Mesa base. None of that adds CUDA or OptiX, for the reasons above.

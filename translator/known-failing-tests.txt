@@ -1,0 +1,5 @@
+# Published translator tests that assert emitter behaviour or spirv-val verdicts this tree does not produce.
+# translator/run_tests.sh fails only on failures outside this list and reports entries that pass again.
+# Format: <crate>::<test path> as `cargo test` prints it; crate is translator or wrapper.
+# Recorded on macOS 15 with Homebrew SPIRV-Tools (the CI environment); a different spirv-val can move the
+# three owned_cfg entries, which check what spirv-val itself rejects.

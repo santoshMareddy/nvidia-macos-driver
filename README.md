@@ -138,8 +138,10 @@ Requires macOS 15 with Xcode 16 and a stable Rust toolchain. `build/build.sh che
 | NVK (`libvulkan_nouveau.dylib`) | `nvk/prepare-mesa.sh`, then `build/build263.sh` | Meson, Ninja, glslang, `mesa_clc`, Python mako and pyyaml, bindgen and cbindgen |
 | 1401 app | `app/build.sh` | none |
 
-Tests: `cargo test` in `translator/translator` (needs `spirv-val` on PATH: `brew install spirv-tools`) and in
-`translator/wrapper`; `tools/run_tests.sh [1401.app]` on macOS.
+Tests: `translator/run_tests.sh` runs both translator crates' suites (needs `spirv-val` on PATH: `brew install
+spirv-tools`) and fails only on failures outside `translator/known-failing-tests.txt`, the published tests that assert
+emitter behaviour or spirv-val verdicts this tree does not produce; `tools/run_tests.sh [1401.app]` runs the
+repository's CPU tests on macOS.
 The GitHub Actions workflow (`.github/workflows/build.yml`) builds the translator, the plugin, NVRMAGDC and the app on
 macOS runners, runs those tests, and checks that `nvk/nvk-macos.patch` applies to Mesa `17ca6174`.
 
